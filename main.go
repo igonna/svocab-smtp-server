@@ -17,32 +17,31 @@ type EmailRequest struct {
 	Subject        string `json:"subject"`
 	Message        string `json:"message"`
 	To             string `json:"to"`
+	IsHTML         bool   `json:"is_html"`
 }
 
-// Function to send the email
 func sendEmail(emailRequest EmailRequest) error {
-	// Split the full server address into server and port
 	serverAndPort := strings.Split(emailRequest.SMTPServerAddr, ":")
 	if len(serverAndPort) != 2 {
 		return fmt.Errorf("invalid SMTP server address format, expected 'server:port'")
 	}
 	smtpServer, smtpPort := serverAndPort[0], serverAndPort[1]
 
-	// Set up the authentication information.
-	auth := smtp.PlainAuth(
-		"",
-		emailRequest.Username,
-		emailRequest.Password,
-		smtpServer,
-	)
+	auth := smtp.PlainAuth("", emailRequest.Username, emailRequest.Password, smtpServer)
 
-	// The message to be sent
+	// Determine content type
+	contentType := "text/plain; charset=\"UTF-8\""
+	if emailRequest.IsHTML {
+		contentType = "text/html; charset=\"UTF-8\""
+	}
+
 	message := []byte("To: " + emailRequest.To + "\r\n" +
 		"Subject: " + emailRequest.Subject + "\r\n" +
+		"MIME-Version: 1.0\r\n" +
+		"Content-Type: " + contentType + "\r\n" +
 		"\r\n" +
 		emailRequest.Message + "\r\n")
 
-	// Send the email
 	err := smtp.SendMail(
 		smtpServer+":"+smtpPort,
 		auth,
